@@ -81,7 +81,6 @@
          * FtHoF予測
          */
         forecastNext: function () {
-
             var M = this.getGrimoire();
 
             if (!M) {
@@ -89,7 +88,6 @@
                     result: 'Grimoire unavailable'
                 };
             }
-
 
             var spell = M.spells['hand of fate'];
 
@@ -99,77 +97,68 @@
                 };
             }
 
+            return this.forecastAt(M.spellsCastTotal);
+        },
 
-            var spellCount = M.spellsCastTotal;
+
+        /*
+         * 指定したスペル回数のFtHoFを予測
+         *
+         * 現在の乱数生成ロジックをそのまま使用し、
+         * spellCountだけを変えて未来の手を予測する。
+         */
+        forecastAt: function (spellCount) {
+            var M = this.getGrimoire();
+
+            if (!M) {
+                return {
+                    result: 'Grimoire unavailable'
+                };
+            }
+
+            var spell = M.spells['hand of fate'];
+
+            if (!spell) {
+                return {
+                    result: 'FtHoF unavailable'
+                };
+            }
 
             var failChance = this.getFailChance();
+            var log = [];
 
+            function loggedRandom(label) {
+                var value = Math.random();
 
-            /*
-             * 前回の乱数ログを消去
-             */
-            this.randomLog = [];
+                log.push({
+                    label: label,
+                    value: value
+                });
 
+                return value;
+            }
 
-            /*
-             * Cookie Clicker本体と同じSeed
-             */
             Math.seedrandom(
                 Game.seed + '/' + spellCount
             );
 
-
-            /*
-             * ==========================
-             * Call 1
-             * バックファイア判定
-             * ==========================
-             */
             var failRoll =
-                this.random('Backfire判定');
-
+                loggedRandom('Backfire判定');
 
             var success =
                 failRoll < (1 - failChance);
 
-
             /*
-             * ==========================
-             * Golden Cookie生成時の
-             * 追加乱数
-             * ==========================
-             *
-             * FtHoFはnew Game.shimmer('golden')
-             * を作るため、ここから追加の
-             * Math.random()が消費される。
-             */
-
-
-            /*
-             * 季節による追加判定
-             *
-             * v2.058ではEaster/Valentineで
-             * 追加の乱数消費がある。
+             * 現在のコードと同じ季節判定
              */
             if (
                 Game.season === 'easter' ||
                 Game.season === 'valentines'
             ) {
-
-                this.random(
-                    '季節判定'
-                );
-
+                loggedRandom('季節判定');
             }
 
-
-            /*
-             * ==========================
-             * 成功時
-             * ==========================
-             */
             var choices = [];
-
 
             if (success) {
 
@@ -178,215 +167,148 @@
                     'Lucky'
                 );
 
-
-                /*
-                 * Dragonflight中は
-                 * Click Frenzyなし
-                 */
                 if (!Game.hasBuff('Dragonflight')) {
-
                     choices.push(
                         'Click Frenzy'
                     );
-
                 }
 
-
-                /*
-                 * 10% Cookie Storm
-                 */
                 var stormRoll =
-                    this.random(
+                    loggedRandom(
                         'Cookie Storm判定'
                     );
-
-
                 if (stormRoll < 0.1) {
-
                     choices.push(
                         'Cookie Storm',
                         'Cookie Storm',
                         'Blab'
                     );
-
                 }
 
-
-                /*
-                 * Building Special
-                 */
                 if (Game.BuildingsOwned >= 10) {
 
                     var buildingRoll =
-                        this.random(
+                        loggedRandom(
                             'Building Special判定'
                         );
 
-
                     if (buildingRoll < 0.25) {
-
                         choices.push(
                             'Building Special'
                         );
-
                     }
-
                 }
 
-
-                /*
-                 * Cookie Storm Drop
-                 */
                 var stormDropRoll =
-                    this.random(
+                    loggedRandom(
                         'Cookie Storm Drop判定'
                     );
 
-
                 if (stormDropRoll < 0.15) {
-
                     choices = [
                         'Cookie Storm Drop'
                     ];
-
                 }
 
-
-                /*
-                 * Free Sugar Lump
-                 */
                 var lumpRoll =
-                    this.random(
+                    loggedRandom(
                         'Free Sugar Lump判定'
                     );
 
-
                 if (lumpRoll < 0.0001) {
-
                     choices.push(
                         'Free Sugar Lump'
                     );
-
                 }
 
-
             } else {
-
-                /*
-                 * ==========================
-                 * バックファイア時
-                 * ==========================
-                 */
 
                 choices.push(
                     'Clot',
                     'Ruin Cookies'
                 );
 
-
-                /*
-                 * Cursed Finger / Elder Frenzy
-                 */
                 var curseRoll =
-                    this.random(
+                    loggedRandom(
                         'Cursed Finger判定'
                     );
 
-
                 if (curseRoll < 0.1) {
-
                     choices.push(
                         'Cursed Finger',
                         'Elder Frenzy'
                     );
-
                 }
 
-
-                /*
-                 * Free Sugar Lump
-                 */
                 var lumpRollFail =
-                    this.random(
+                    loggedRandom(
                         'Free Sugar Lump判定'
                     );
 
-
                 if (lumpRollFail < 0.003) {
-
                     choices.push(
                         'Free Sugar Lump'
                     );
-
                 }
 
-
-                /*
-                 * Blab
-                 */
                 var blabRoll =
-                    this.random(
+                    loggedRandom(
                         'Blab判定'
                     );
 
-
                 if (blabRoll < 0.1) {
-
                     choices = [
                         'Blab'
                     ];
-
                 }
-
             }
 
-
-            /*
-             * ==========================
-             * 最終候補選択
-             * ==========================
-             */
             var chooseRoll =
-                this.random(
+                loggedRandom(
                     '最終結果選択'
                 );
-
 
             var chosenIndex =
                 Math.floor(
                     chooseRoll * choices.length
                 );
 
-
             var result =
                 choices[chosenIndex];
 
-
-            /*
-             * 元のMath.randomへ戻す
-             */
             Math.seedrandom();
 
-
             return {
-
                 spellCount: spellCount,
-
                 seed: Game.seed,
-
                 failChance: failChance,
-
                 failRoll: failRoll,
-
                 success: success,
-
                 result: result,
-
                 choices: choices,
-
-                randomLog: this.randomLog.slice()
-
+                randomLog: log
             };
+        },
+
+
+        /*
+         * 次の10手をまとめて予測
+         */
+        forecastMany: function (count) {
+            var M = this.getGrimoire();
+
+            if (!M) return [];
+
+            var startCount = M.spellsCastTotal;
+            var forecasts = [];
+
+            for (var i = 1; i <= count; i++) {
+                forecasts.push(
+                    this.forecastAt(startCount + i)
+                );
+            }
+
+            return forecasts;
         },
 
 
@@ -400,7 +322,6 @@
 
             if (!menu) return;
 
-
             /*
              * 開閉状態保存
              */
@@ -410,19 +331,15 @@
                 );
 
             if (oldBody) {
-
                 this.isOpen =
                     oldBody.style.display !== 'none';
-
             }
-
 
             /*
              * スクロール位置保存
              */
             var scrollTop =
                 menu.scrollTop;
-
 
             /*
              * 古いPlanner削除
@@ -436,87 +353,131 @@
                 old.remove();
             }
 
-
-            /*
-             * 現在の情報
-             */
             var spellsCast =
                 this.getSpellsCastTotal();
 
             var seed =
                 this.getSeed();
 
+            /*
+             * 次の10手を予測
+             */
+            var forecasts =
+                this.forecastMany(10);
+
+            var next =
+                forecasts.length ?
+                    forecasts[0] :
+                    {
+                        result: '--',
+                        failChance: 0.15
+                    };
 
             /*
-             * 予測
+             * 10手予測一覧
              */
-            var forecast =
-                this.forecastNext();
+            var rowsHTML = '';
 
-
-            /*
-             * 結果
-             */
-            var forecastText =
-                forecast.result || '--';
-
-
-            /*
-             * 乱数表示HTML
-             */
-            var randomHTML = '';
-
-
-            if (
-                forecast.randomLog &&
-                forecast.randomLog.length
-            ) {
+            if (forecasts.length) {
 
                 for (
                     var i = 0;
-                    i < forecast.randomLog.length;
+                    i < forecasts.length;
                     i++
                 ) {
 
-                    var r =
-                        forecast.randomLog[i];
+                    var f = forecasts[i];
 
-                    randomHTML +=
-                        '<div style="margin:3px 0;">' +
+                    /*
+                     * 表の乱数は、現在のコードと同じ
+                     * Backfire判定の乱数を表示。
+                     *
+                     * 詳細な乱数は行をクリックすると表示。
+                     */
+                    var mainRandom =
+                        f.randomLog &&
+                        f.randomLog.length ?
+                            f.randomLog[0].value :
+                            0;
 
-                            '<span style="display:inline-block;' +
-                                'width:25px;">' +
+                    var backfireText =
+                        f.success ?
+                            '成功' :
+                            '失敗';
 
-                                (i + 1) +
+                    var detailHTML = '';
 
-                            '.</span>' +
+                    if (
+                        f.randomLog &&
+                        f.randomLog.length
+                    ) {
 
-                            '<span style="display:inline-block;' +
-                                'width:190px;">' +
+                        for (
+                            var j = 0;
+                            j < f.randomLog.length;
+                            j++
+                        ) {
 
-                                r.label +
+                            var r =
+                                f.randomLog[j];
 
-                            '</span>' +
+                            detailHTML +=
+                                '<div style="margin:2px 0;">' +
+                                    '<span style="display:inline-block;width:25px;">' +
+                                        (j + 1) +
+                                    '.</span>' +
+                                    '<span style="display:inline-block;width:190px;">' +
+                                        r.label +
+                                    '</span>' +
+                                    '<span>' +
+                                        r.value.toFixed(10) +
+                                    '</span>' +
+                                '</div>';
+                        }
+                    }
 
-                            '<span>' +
+                    rowsHTML +=
+                        '<tr style="cursor:pointer;" ' +
+                            'data-fthof-row="' + i + '">' +
 
-                                r.value.toFixed(10) +
+                            '<td style="padding:5px 7px;white-space:nowrap;">' +
+                                i + '手目 / ' +
+                                f.spellCount + '回' +
+                            '</td>' +
 
-                            '</span>' +
+                            '<td style="padding:5px 7px;white-space:nowrap;">' +
+                                backfireText +
+                            '</td>' +
 
-                        '</div>';
+                            '<td style="padding:5px 7px;font-family:monospace;white-space:nowrap;">' +
+                                mainRandom.toFixed(10) +
+                            '</td>' +
+
+                            '<td style="padding:5px 7px;">' +
+                                '<b>' + f.result + '</b>' +
+                            '</td>' +
+
+                        '</tr>' +
+
+                        '<tr id="FtHoFRandomRow' + i + '" style="display:none;">' +
+                            '<td colspan="4" style="padding:4px 7px 8px 20px;">' +
+                                '<div style="font-size:12px;font-family:monospace;">' +
+                                    detailHTML +
+                                '</div>' +
+                            '</td>' +
+                        '</tr>';
                 }
 
             } else {
 
-                randomHTML =
-                    '乱数データなし';
-
+                rowsHTML =
+                    '<tr>' +
+                        '<td colspan="4">予測データなし</td>' +
+                    '</tr>';
             }
 
-
             /*
-             * Planner
+             * Planner本体
              */
             var section =
                 document.createElement('div');
@@ -526,7 +487,6 @@
 
             section.className =
                 'listing';
-
 
             section.innerHTML =
 
@@ -542,98 +502,64 @@
 
                 '</div>' +
 
-
                 '<div id="FtHoFPlannerBody" ' +
                     'style="display:' +
                         (this.isOpen ? '' : 'none') +
                     ';">' +
 
-
-                    /*
-                     * 基本情報
-                     */
                     '<div class="listing">' +
 
                         '<b>Force the Hand of Fate</b>' +
 
                         '<br><br>' +
 
-                        '<b>総スペル回数：</b>' +
-                        spellsCast +
-
-                        '<br>' +
-
                         '<b>Seed：</b>' +
                         seed +
 
-                    '</div>' +
+                        '<br>' +
 
-
-                    /*
-                     * 予測結果
-                     */
-                    '<div class="listing">' +
-
-                        '<b>次回FtHoF</b>' +
-
-                        '<br><br>' +
-
-                        '<span style="font-size:18px;">' +
-
-                            forecastText +
-
-                        '</span>' +
-
-                        '<br><br>' +
-
-                        '<b>成功率：</b>' +
-
-                        (
-                            ((1 - forecast.failChance) * 100)
-                            .toFixed(2)
-                        ) +
-
-                        '%' +
+                        '<b>現在の総スペル回数：</b>' +
+                        spellsCast +
 
                     '</div>' +
 
-
-                    /*
-                     * 乱数
-                     */
                     '<div class="listing">' +
 
-                        '<b>乱数</b>' +
+                        '<b>次の10手</b>' +
+
+                        '<br><br>' +
+
+                        '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
+
+                            '<thead>' +
+                                '<tr>' +
+                                    '<th style="text-align:left;padding:5px 7px;">手数 / 呪文総回数</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">バックファイア</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">乱数</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">効果</th>' +
+                                '</tr>' +
+                            '</thead>' +
+
+                            '<tbody>' +
+                                rowsHTML +
+                            '</tbody>' +
+
+                        '</table>' +
 
                         '<br>' +
 
                         '<small style="opacity:0.7;">' +
-
-                            'この予測で使用した乱数値' +
-
+                            '行をタップすると、その手で使用した乱数の詳細を表示します。' +
                         '</small>' +
-
-                        '<div style="' +
-                            'margin-top:8px;' +
-                            'font-family:monospace;' +
-                            'font-size:12px;' +
-                        '">' +
-
-                            randomHTML +
-
-                        '</div>' +
 
                     '</div>' +
 
-
                 '</div>';
-
 
             /*
              * Options末尾へ追加
              */
             menu.appendChild(section);
-
 
             /*
              * 開閉処理
@@ -652,7 +578,6 @@
                 document.getElementById(
                     'FtHoFPlannerToggle'
                 );
-
 
             if (title && body && toggle) {
 
@@ -677,13 +602,46 @@
                             toggle.textContent = '+';
 
                             FtHoFPlanner.isOpen = false;
-
                         }
-
                     };
-
             }
 
+            /*
+             * 各予測行のクリックで乱数詳細を開閉
+             */
+            for (var rowIndex = 0; rowIndex < forecasts.length; rowIndex++) {
+
+                (function (index) {
+
+                    var row =
+                        section.querySelector(
+                            '[data-fthof-row="' + index + '"]'
+                        );
+
+                    var randomRow =
+                        document.getElementById(
+                            'FtHoFRandomRow' + index
+                        );
+
+                    if (row && randomRow) {
+
+                        row.onclick =
+                            function () {
+
+                                if (
+                                    randomRow.style.display ===
+                                    'none'
+                                ) {
+                                    randomRow.style.display = '';
+                                } else {
+                                    randomRow.style.display = 'none';
+                                }
+
+                            };
+                    }
+
+                })(rowIndex);
+            }
 
             /*
              * スクロール位置復元
@@ -691,10 +649,9 @@
             menu.scrollTop =
                 scrollTop;
 
-
             console.log(
-                '[FtHoF Planner] forecast:',
-                forecast
+                '[FtHoF Planner] forecasts:',
+                forecasts
             );
         }
     };
