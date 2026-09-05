@@ -1,90 +1,77 @@
 (function () {
     'use strict';
 
+    console.log('[FtHoF Planner] loading...');
+
     var FtHoFPlanner = {
         id: 'FtHoFPlanner',
 
-        createOptionsMenu: function () {
-            var menu = l('menu');
+        updateOptionsMenu: function () {
+            var menu = document.getElementById('menu');
+            if (!menu) return;
 
-            if (!menu) {
-                console.log('[FtHoF Planner] menu が見つかりません');
-                return;
-            }
+            // Optionsが再生成された場合でも毎回作り直す
+            var old = document.getElementById('FtHoFPlannerOptions');
+            if (old) old.remove();
 
-            // Options が再構築された場合に備えて、
-            // 同じ要素が既に存在していたら追加しない
-            if (l('FtHoFPlannerOptions')) {
-                return;
-            }
-
-            // Cookie Monster風の折りたたみセクション
             var section = document.createElement('div');
             section.id = 'FtHoFPlannerOptions';
             section.className = 'listing';
 
             section.innerHTML =
-                '<div class="title" id="FtHoFPlannerTitle" ' +
-                    'style="cursor:pointer;">' +
-                    'FtHoF Planner ' +
-                    '<span id="FtHoFPlannerToggle">+</span>' +
+                '<div class="title" id="FtHoFPlannerTitle" style="cursor:pointer;">' +
+                    'FtHoF Planner <span id="FtHoFPlannerToggle">+</span>' +
                 '</div>' +
 
                 '<div id="FtHoFPlannerBody" style="display:none;">' +
-
                     '<div class="listing">' +
                         '<b>FtHoF Planner</b><br>' +
-                        'Force the Hand of Fate の予測プランナーです。' +
+                        'Force the Hand of Fate Planner' +
                     '</div>' +
 
                     '<div class="listing">' +
-                        'ここに今後、予測結果を表示します。' +
+                        'ここにFtHoFの予測結果を表示します。' +
                     '</div>' +
-
                 '</div>';
 
-            // Options の一番最後に追加
             menu.appendChild(section);
 
-            // 開閉処理
-            var title = l('FtHoFPlannerTitle');
-            var body = l('FtHoFPlannerBody');
-            var toggle = l('FtHoFPlannerToggle');
+            var title = document.getElementById('FtHoFPlannerTitle');
+            var body = document.getElementById('FtHoFPlannerBody');
+            var toggle = document.getElementById('FtHoFPlannerToggle');
 
-            if (title && body) {
-                title.onclick = function () {
-                    if (body.style.display === 'none') {
-                        body.style.display = '';
-                        if (toggle) {
-                            toggle.innerHTML = '−';
-                        }
-                    } else {
-                        body.style.display = 'none';
-                        if (toggle) {
-                            toggle.innerHTML = '+';
-                        }
-                    }
-                };
-            }
+            title.onclick = function () {
+                if (body.style.display === 'none') {
+                    body.style.display = '';
+                    toggle.textContent = '−';
+                } else {
+                    body.style.display = 'none';
+                    toggle.textContent = '+';
+                }
+            };
 
-            console.log('[FtHoF Planner] Options に追加しました');
+            console.log('[FtHoF Planner] Options updated');
         }
     };
 
-    /*
-     * Cookie Clicker の Options メニュー更新時に呼ぶ
-     */
-    if (!Game.customOptionsMenu) {
-        Game.customOptionsMenu = [];
-    }
-
-    Game.customOptionsMenu.push(
-        FtHoFPlanner.createOptionsMenu
-    );
 
     /*
-     * 読み込み確認
+     * Game.UpdateMenu を利用する
+     *
+     * 元のGame.UpdateMenuを保存して、
+     * その処理が終わった後にFtHoF Plannerを追加する。
      */
+    var originalUpdateMenu = Game.UpdateMenu;
+
+    Game.UpdateMenu = function () {
+        originalUpdateMenu.apply(Game, arguments);
+
+        if (Game.onMenu === 'prefs') {
+            FtHoFPlanner.updateOptionsMenu();
+        }
+    };
+
+
     Game.Notify(
         'FtHoF Planner',
         'MODを読み込みました。',
