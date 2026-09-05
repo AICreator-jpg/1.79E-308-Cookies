@@ -7,6 +7,9 @@
 
         isOpen: false,
 
+        // 各行の詳細表示状態をUpdateMenu再構築後も保持
+        expandedRows: {},
+
         // 今回の予測で使った乱数
         randomLog: [],
 
@@ -20,7 +23,6 @@
             if (!wizardTower || !wizardTower.minigame) {
                 return null;
             }
-
 
             return wizardTower.minigame;
         },
@@ -105,18 +107,16 @@
 
 
             /*
-             * 乱数ログ
+             * 前回の乱数ログを消去
              */
             var randomLog = [];
 
             function loggedRandom(label) {
                 var value = Math.random();
-
                 randomLog.push({
                     label: label,
                     value: value
                 });
-
                 return value;
             }
 
@@ -144,33 +144,10 @@
 
 
             /*
-             * ==========================
-             * Golden Cookie生成時の
-             * 追加乱数
-             * ==========================
-             *
-             * FtHoFはnew Game.shimmer('golden')
-             * を作るため、ここから追加の
-             * Math.random()が消費される。
+             * FtHoFの結果判定では、
+             * Golden Cookieの座標・画像などの
+             * 生成用乱数を予測用に消費しない。
              */
-
-
-            /*
-             * 季節による追加判定
-             *
-             * v2.058ではEaster/Valentineで
-             * 追加の乱数消費がある。
-             */
-            if (
-                Game.season === 'easter' ||
-                Game.season === 'valentines'
-            ) {
-
-                loggedRandom(
-                    '季節判定'
-                );
-
-            }
 
 
             /*
@@ -395,6 +372,7 @@
                 choices: choices,
 
                 randomLog: randomLog.slice()
+
             };
         },
 
@@ -404,81 +382,30 @@
          */
         forecastNext: function () {
             var M = this.getGrimoire();
-
-            if (!M) {
-                return {
-                    result: 'Grimoire unavailable'
-                };
-            }
-
+            if (!M) return { result: 'Grimoire unavailable' };
             var spell = M.spells['hand of fate'];
-
-            if (!spell) {
-                return {
-                    result: 'FtHoF unavailable'
-                };
-            }
-
-            return this.forecastAt(
-                M.spellsCastTotal
-            );
+            if (!spell) return { result: 'FtHoF unavailable' };
+            return this.forecastAt(M.spellsCastTotal);
         },
 
 
         /*
          * 次の10手を予測
-         *
-         * 内部RNG：
-         *   現在のspellsCastTotalから開始
-         *
-         * 表示：
-         *   現在値+1を1手目として表示
+         * 内部RNGは現在のspellsCastTotalから開始。
+         * 表示上の呪文総回数は1手目を現在値+1とする。
          */
         forecastMany: function (count) {
-
-            var M =
-                this.getGrimoire();
-
+            var M = this.getGrimoire();
             if (!M) return [];
-
-
-            var startCount =
-                M.spellsCastTotal;
-
+            var startCount = M.spellsCastTotal;
             var forecasts = [];
-
-
-            for (
-                var i = 0;
-                i < count;
-                i++
-            ) {
-
+            for (var i = 0; i < count; i++) {
                 forecasts.push({
-
-                    /*
-                     * 表示上の手数
-                     */
-                    hand:
-                        i + 1,
-
-                    /*
-                     * 表示上の呪文総回数
-                     */
-                    displaySpellCount:
-                        startCount + i + 1,
-
-                    /*
-                     * 内部RNGに使う回数
-                     */
-                    forecast:
-                        this.forecastAt(
-                            startCount + i
-                        )
+                    hand: i + 1,
+                    displaySpellCount: startCount + i + 1,
+                    forecast: this.forecastAt(startCount + i)
                 });
             }
-
-
             return forecasts;
         },
 
@@ -518,7 +445,9 @@
 
 
             /*
-             * 古いPlanner削除
+             * 古いPlannerの詳細表示状態を保存
+             * Game.UpdateMenuは定期的にOptionsを再構築するため、
+             * 開いている乱数詳細を再構築後も復元する。
              */
             var old =
                 document.getElementById(
@@ -526,6 +455,18 @@
                 );
 
             if (old) {
+                for (var oldIndex = 0; oldIndex < 10; oldIndex++) {
+                    var oldDetail =
+                        document.getElementById(
+                            'FtHoFRandomRow' + oldIndex
+                        );
+
+                    this.expandedRows[oldIndex] = !!(
+                        oldDetail &&
+                        oldDetail.style.display !== 'none'
+                    );
+                }
+
                 old.remove();
             }
 
@@ -552,169 +493,75 @@
              */
             var rowsHTML = '';
 
-
             for (
                 var i = 0;
                 i < forecasts.length;
                 i++
             ) {
+                var item = forecasts[i];
+                var f = item.forecast;
 
-                var item =
-                    forecasts[i];
-
-                var f =
-                    item.forecast;
-
-
-                /*
-                 * 表に表示するメイン乱数
-                 * = バックファイア判定乱数
-                 */
                 var mainRandom =
-                    f.randomLog &&
-                    f.randomLog.length ?
+                    f.randomLog && f.randomLog.length ?
                         f.randomLog[0].value :
                         0;
 
-
                 var backfireText =
-                    f.success ?
-                        '成功' :
-                        '失敗';
+                    f.success ? '成功' : '失敗';
 
-
-                /*
-                 * 詳細乱数
-                 */
                 var detailHTML = '';
 
-
-                if (
-                    f.randomLog &&
-                    f.randomLog.length
-                ) {
-
+                if (f.randomLog && f.randomLog.length) {
                     for (
                         var j = 0;
                         j < f.randomLog.length;
                         j++
                     ) {
-
-                        var r =
-                            f.randomLog[j];
-
-
+                        var r = f.randomLog[j];
                         detailHTML +=
                             '<div style="margin:3px 0;">' +
-
-                                '<span style="' +
-                                    'display:inline-block;' +
-                                    'width:25px;">' +
-
+                                '<span style="display:inline-block;width:25px;">' +
                                     (j + 1) +
-
                                 '.</span>' +
-
-                                '<span style="' +
-                                    'display:inline-block;' +
-                                    'width:190px;">' +
-
+                                '<span style="display:inline-block;width:190px;">' +
                                     r.label +
-
                                 '</span>' +
-
                                 '<span>' +
-
                                     r.value.toFixed(10) +
-
                                 '</span>' +
-
                             '</div>';
                     }
                 }
 
-
                 rowsHTML +=
-
-                    '<tr style="cursor:pointer;" ' +
-                        'data-fthof-row="' +
-                            i +
-                        '">' +
-
-                        '<td style="' +
-                            'padding:5px 7px;' +
-                            'white-space:nowrap;">' +
-
-                            item.hand +
-                            '手目 / ' +
-                            item.displaySpellCount +
-                            '回' +
-
+                    '<tr style="cursor:pointer;" data-fthof-row="' + i + '">' +
+                        '<td style="padding:5px 7px;white-space:nowrap;">' +
+                            item.hand + '手目 / ' +
+                            item.displaySpellCount + '回' +
                         '</td>' +
-
-
-                        '<td style="' +
-                            'padding:5px 7px;' +
-                            'white-space:nowrap;">' +
-
+                        '<td style="padding:5px 7px;white-space:nowrap;">' +
                             backfireText +
-
                         '</td>' +
-
-
-                        '<td style="' +
-                            'padding:5px 7px;' +
-                            'font-family:monospace;' +
-                            'white-space:nowrap;">' +
-
+                        '<td style="padding:5px 7px;font-family:monospace;white-space:nowrap;">' +
                             mainRandom.toFixed(10) +
-
                         '</td>' +
-
-
-                        '<td style="' +
-                            'padding:5px 7px;">' +
-
-                            '<b>' +
-                                f.result +
-                            '</b>' +
-
+                        '<td style="padding:5px 7px;">' +
+                            '<b>' + f.result + '</b>' +
                         '</td>' +
-
                     '</tr>' +
-
-
-                    '<tr id="FtHoFRandomRow' +
-                        i +
-                        '" style="display:none;">' +
-
-                        '<td colspan="4" style="' +
-                            'padding:4px 7px 8px 20px;">' +
-
-                            '<div style="' +
-                                'font-size:12px;' +
-                                'font-family:monospace;">' +
-
+                    '<tr id="FtHoFRandomRow' + i + '" style="display:' + (this.expandedRows[i] ? '' : 'none') + ';">' +
+                        '<td colspan="4" style="padding:4px 7px 8px 20px;">' +
+                            '<div style="font-size:12px;font-family:monospace;">' +
                                 detailHTML +
-
                             '</div>' +
-
                         '</td>' +
-
                     '</tr>';
             }
-
 
             if (!rowsHTML) {
-
                 rowsHTML =
-                    '<tr>' +
-                        '<td colspan="4">' +
-                            '予測データなし' +
-                        '</td>' +
-                    '</tr>';
+                    '<tr><td colspan="4">予測データなし</td></tr>';
             }
-
 
             /*
              * Planner
@@ -722,10 +569,8 @@
             var section =
                 document.createElement('div');
 
-
             section.id =
                 'FtHoFPlannerOptions';
-
 
             section.className =
                 'listing';
@@ -740,126 +585,46 @@
                     'FtHoF Planner ' +
 
                     '<span id="FtHoFPlannerToggle">' +
-
-                        (this.isOpen ?
-                            '−' :
-                            '+') +
-
+                        (this.isOpen ? '−' : '+') +
                     '</span>' +
 
                 '</div>' +
 
-
                 '<div id="FtHoFPlannerBody" ' +
                     'style="display:' +
-                        (this.isOpen ?
-                            '' :
-                            'none') +
+                        (this.isOpen ? '' : 'none') +
                     ';">' +
 
-
                     '<div class="listing">' +
-
-                        '<b>' +
-                            'Force the Hand of Fate' +
-                        '</b>' +
-
+                        '<b>Force the Hand of Fate</b>' +
                         '<br><br>' +
-
                         '<b>総スペル回数：</b>' +
-
                         spellsCast +
-
                         '<br>' +
-
                         '<b>Seed：</b>' +
-
                         seed +
-
                     '</div>' +
-
 
                     '<div class="listing">' +
-
                         '<b>次の10手</b>' +
-
                         '<br><br>' +
-
-
-                        '<table style="' +
-                            'width:100%;' +
-                            'border-collapse:collapse;' +
-                            'font-size:13px;">' +
-
-
+                        '<table style="width:100%;border-collapse:collapse;font-size:13px;">' +
                             '<thead>' +
-
                                 '<tr>' +
-
-                                    '<th style="' +
-                                        'text-align:left;' +
-                                        'padding:5px 7px;">' +
-
-                                        '手数 / 呪文総回数' +
-
-                                    '</th>' +
-
-
-                                    '<th style="' +
-                                        'text-align:left;' +
-                                        'padding:5px 7px;">' +
-
-                                        'バックファイア' +
-
-                                    '</th>' +
-
-
-                                    '<th style="' +
-                                        'text-align:left;' +
-                                        'padding:5px 7px;">' +
-
-                                        '乱数' +
-
-                                    '</th>' +
-
-
-                                    '<th style="' +
-                                        'text-align:left;' +
-                                        'padding:5px 7px;">' +
-
-                                        '効果' +
-
-                                    '</th>' +
-
+                                    '<th style="text-align:left;padding:5px 7px;">手数 / 呪文総回数</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">バックファイア</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">乱数</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">効果</th>' +
                                 '</tr>' +
-
                             '</thead>' +
-
-
                             '<tbody>' +
-
                                 rowsHTML +
-
                             '</tbody>' +
-
                         '</table>' +
-
-
                         '<br>' +
-
-
-                        '<small style="' +
-                            'opacity:0.7;">' +
-
-                            '行をタップすると、' +
-                            'その手で使用した乱数の詳細を表示します。' +
-
-                        '</small>' +
-
+                        '<small style="opacity:0.7;">行をタップすると、その手で使用した乱数の詳細を表示します。</small>' +
                     '</div>' +
-
                 '</div>';
-
 
             /*
              * Options末尾へ追加
@@ -886,11 +651,7 @@
                 );
 
 
-            if (
-                title &&
-                body &&
-                toggle
-            ) {
+            if (title && body && toggle) {
 
                 title.onclick =
                     function () {
@@ -900,85 +661,53 @@
                             'none'
                         ) {
 
-                            body.style.display =
-                                '';
+                            body.style.display = '';
 
-                            toggle.textContent =
-                                '−';
+                            toggle.textContent = '−';
 
-                            FtHoFPlanner.isOpen =
-                                true;
+                            FtHoFPlanner.isOpen = true;
 
                         } else {
 
-                            body.style.display =
-                                'none';
+                            body.style.display = 'none';
 
-                            toggle.textContent =
-                                '+';
+                            toggle.textContent = '+';
 
-                            FtHoFPlanner.isOpen =
-                                false;
+                            FtHoFPlanner.isOpen = false;
 
                         }
 
                     };
+
             }
 
 
             /*
-             * 各行のクリックで
-             * 乱数詳細を開閉
+             * 各行のクリックで乱数詳細を開閉
              */
-            for (
-                var rowIndex = 0;
-                rowIndex < forecasts.length;
-                rowIndex++
-            ) {
-
+            for (var rowIndex = 0; rowIndex < forecasts.length; rowIndex++) {
                 (function (index) {
-
                     var row =
                         section.querySelector(
-                            '[data-fthof-row="' +
-                                index +
-                            '"]'
+                            '[data-fthof-row="' + index + '"]'
                         );
-
 
                     var randomRow =
                         document.getElementById(
-                            'FtHoFRandomRow' +
-                                index
+                            'FtHoFRandomRow' + index
                         );
 
-
-                    if (
-                        row &&
-                        randomRow
-                    ) {
-
-                        row.onclick =
-                            function () {
-
-                                if (
-                                    randomRow.style.display ===
-                                    'none'
-                                ) {
-
-                                    randomRow.style.display =
-                                        '';
-
-                                } else {
-
-                                    randomRow.style.display =
-                                        'none';
-
-                                }
-
-                            };
+                    if (row && randomRow) {
+                        row.onclick = function () {
+                            if (randomRow.style.display === 'none') {
+                                randomRow.style.display = '';
+                                FtHoFPlanner.expandedRows[index] = true;
+                            } else {
+                                randomRow.style.display = 'none';
+                                FtHoFPlanner.expandedRows[index] = false;
+                            }
+                        };
                     }
-
                 })(rowIndex);
             }
 
@@ -994,9 +723,7 @@
                 '[FtHoF Planner] forecasts:',
                 forecasts
             );
-
         }
-
     };
 
 
