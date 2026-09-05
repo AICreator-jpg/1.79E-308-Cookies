@@ -1,92 +1,97 @@
 (function () {
     'use strict';
 
-    var FtHoFPlanner = {};
+    var FtHoFPlanner = {
+        id: 'FtHoFPlanner',
 
-    FtHoFPlanner.name = 'FtHoF Planner';
+        createOptionsMenu: function () {
+            var menu = l('menu');
 
-    FtHoFPlanner.OptionsMenu = function () {
-        var menu = l('menu');
-        if (!menu) return;
+            if (!menu) {
+                console.log('[FtHoF Planner] menu が見つかりません');
+                return;
+            }
 
-        // FtHoF Planner の設定欄
-        menu.innerHTML +=
-            '<div class="listing" id="FtHoFPlannerOptions">' +
+            // Options が再構築された場合に備えて、
+            // 同じ要素が既に存在していたら追加しない
+            if (l('FtHoFPlannerOptions')) {
+                return;
+            }
 
+            // Cookie Monster風の折りたたみセクション
+            var section = document.createElement('div');
+            section.id = 'FtHoFPlannerOptions';
+            section.className = 'listing';
+
+            section.innerHTML =
                 '<div class="title" id="FtHoFPlannerTitle" ' +
                     'style="cursor:pointer;">' +
-                    'FtHoF Planner <span id="FtHoFPlannerPlus">+</span>' +
+                    'FtHoF Planner ' +
+                    '<span id="FtHoFPlannerToggle">+</span>' +
                 '</div>' +
 
                 '<div id="FtHoFPlannerBody" style="display:none;">' +
 
                     '<div class="listing">' +
-                        '<b>Force the Hand of Fate Planner</b>' +
-                        '<br>' +
-                        '<label>' +
-                        'FtHoF の結果を予測するプランナーです。' +
-                        '</label>' +
+                        '<b>FtHoF Planner</b><br>' +
+                        'Force the Hand of Fate の予測プランナーです。' +
                     '</div>' +
 
                     '<div class="listing">' +
-                        '<b>Spell casts:</b> ' +
-                        '<span id="FtHoFPlannerSpellCount">--</span>' +
+                        'ここに今後、予測結果を表示します。' +
                     '</div>' +
 
-                    '<div class="listing">' +
-                        '<b>Seed:</b> ' +
-                        '<span id="FtHoFPlannerSeed">--</span>' +
-                    '</div>' +
+                '</div>';
 
-                    '<div class="listing">' +
-                        '<b>予測結果</b>' +
-                        '<br>' +
-                        '<span style="opacity:0.7;">' +
-                        'ここに FtHoF の予測結果を表示します。' +
-                        '</span>' +
-                    '</div>' +
+            // Options の一番最後に追加
+            menu.appendChild(section);
 
-                '</div>' +
-            '</div>';
+            // 開閉処理
+            var title = l('FtHoFPlannerTitle');
+            var body = l('FtHoFPlannerBody');
+            var toggle = l('FtHoFPlannerToggle');
 
-        // 折りたたみボタン
-        var title = l('FtHoFPlannerTitle');
-        var body = l('FtHoFPlannerBody');
-        var plus = l('FtHoFPlannerPlus');
+            if (title && body) {
+                title.onclick = function () {
+                    if (body.style.display === 'none') {
+                        body.style.display = '';
+                        if (toggle) {
+                            toggle.innerHTML = '−';
+                        }
+                    } else {
+                        body.style.display = 'none';
+                        if (toggle) {
+                            toggle.innerHTML = '+';
+                        }
+                    }
+                };
+            }
 
-        if (title && body) {
-            title.onclick = function () {
-                if (body.style.display === 'none') {
-                    body.style.display = '';
-                    if (plus) plus.innerHTML = '−';
-                } else {
-                    body.style.display = 'none';
-                    if (plus) plus.innerHTML = '+';
-                }
-            };
-        }
-
-        // 現在の情報を表示
-        var wizardTower = Game.Objects['Wizard tower'];
-
-        if (wizardTower &&
-            wizardTower.minigame &&
-            l('FtHoFPlannerSpellCount')) {
-
-            l('FtHoFPlannerSpellCount').innerHTML =
-                wizardTower.minigame.spellsCastTotal || 0;
-        }
-
-        if (l('FtHoFPlannerSeed')) {
-            l('FtHoFPlannerSeed').innerHTML =
-                Game.seed || '--';
+            console.log('[FtHoF Planner] Options に追加しました');
         }
     };
 
     /*
-     * Options が開かれたときに呼ばれる
+     * Cookie Clicker の Options メニュー更新時に呼ぶ
      */
-    Game.customOptionsMenu.push(FtHoFPlanner.OptionsMenu);
+    if (!Game.customOptionsMenu) {
+        Game.customOptionsMenu = [];
+    }
+
+    Game.customOptionsMenu.push(
+        FtHoFPlanner.createOptionsMenu
+    );
+
+    /*
+     * 読み込み確認
+     */
+    Game.Notify(
+        'FtHoF Planner',
+        'MODを読み込みました。',
+        [16, 5],
+        3
+    );
 
     console.log('[FtHoF Planner] loaded');
+
 })();
