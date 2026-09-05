@@ -1,64 +1,38 @@
 (function () {
     'use strict';
 
-    if (typeof Game === 'undefined') {
-        console.error('[FtHoF Planner] Cookie Clickerが見つかりません。');
-        return;
-    }
-
-    console.log('[FtHoF Planner] Loaded.');
-
     // ========================================
     // FtHoF Planner
     // ========================================
 
-    Game.registerHook('check', function () {
-        // 今は何もしません。
+    console.log('[FtHoF Planner] Loading...');
+
+    // MOD読み込み確認
+    Game.Notify(
+        'FtHoF Planner',
+        'MODが正常に読み込まれました！',
+        [16, 5]
+    );
+
+    // ========================================
+    // Optionsメニューへの追加
+    // ========================================
+
+    Game.customOptionsMenu.push(function () {
+
+        return `
+            <div class="listing">
+                <a class="option" id="fthof-planner-open">
+                    FtHoF Planner
+                </a>
+                <label>
+                    FtHoF Plannerを開きます。
+                </label>
+            </div>
+        `;
+
     });
 
-    // Options画面にボタンを追加
-    if (typeof Game.registerMod === 'function') {
-        console.log('[FtHoF Planner] Game API detected.');
-    }
-
-    // Cookie ClickerのOptions画面を拡張
-    const originalUpdateMenu = Game.UpdateMenu;
-
-    Game.UpdateMenu = function () {
-        originalUpdateMenu.apply(this, arguments);
-
-        if (Game.onMenu === 'prefs') {
-            addPlannerButton();
-        }
-    };
-
-    function addPlannerButton() {
-        if (document.getElementById('fthof-planner-button')) {
-            return;
-        }
-
-        const menu = document.getElementById('menu');
-
-        if (!menu) {
-            return;
-        }
-
-        const button = document.createElement('div');
-
-        button.id = 'fthof-planner-button';
-        button.className = 'option';
-        button.textContent = 'FtHoF Planner';
-
-        button.onclick = function () {
-            openPlanner();
-        };
-
-        menu.appendChild(button);
-    }
-
-    // Planner画面
-    function openPlanner() {
-        alert('FtHoF Planner\n\n現在はテスト画面です。');
-    }
+    console.log('[FtHoF Planner] Options menu registered.');
 
 })();
