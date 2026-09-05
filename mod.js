@@ -7,6 +7,10 @@
 
         isOpen: false,
 
+        // 今回の予測で使った乱数
+        randomLog: [],
+
+
         /*
          * Grimoire取得
          */
@@ -22,7 +26,7 @@
 
 
         /*
-         * 現在のスペル総数
+         * 総スペル回数
          */
         getSpellsCastTotal: function () {
             var M = this.getGrimoire();
@@ -34,7 +38,7 @@
 
 
         /*
-         * 現在のSeed
+         * Seed
          */
         getSeed: function () {
             return Game.seed || '--';
@@ -42,9 +46,7 @@
 
 
         /*
-         * FtHoFのバックファイア率
-         *
-         * ゲーム本体のgetFailChanceを利用する。
+         * バックファイア率
          */
         getFailChance: function () {
             var M = this.getGrimoire();
@@ -60,9 +62,23 @@
 
 
         /*
-         * FtHoFの乱数予測
-         *
-         * ここが今回の核心。
+         * 乱数を取得すると同時に記録する
+         */
+        random: function (label) {
+
+            var value = Math.random();
+
+            this.randomLog.push({
+                label: label,
+                value: value
+            });
+
+            return value;
+        },
+
+
+        /*
+         * FtHoF予測
          */
         forecastNext: function () {
 
@@ -90,7 +106,13 @@
 
 
             /*
-             * Cookie Clicker本体と同じSeedを設定
+             * 前回の乱数ログを消去
+             */
+            this.randomLog = [];
+
+
+            /*
+             * Cookie Clicker本体と同じSeed
              */
             Math.seedrandom(
                 Game.seed + '/' + spellCount
@@ -98,63 +120,59 @@
 
 
             /*
-             * 最初の乱数
-             *
-             * 本体：
-             * Math.random() < (1 - failChance)
+             * ==========================
+             * Call 1
+             * バックファイア判定
+             * ==========================
              */
-            var successRoll = Math.random();
+            var failRoll =
+                this.random('Backfire判定');
 
 
             var success =
-                successRoll < (1 - failChance);
+                failRoll < (1 - failChance);
 
 
             /*
-             * Game.shimmer('golden') の
-             * initFuncによって消費される乱数を再現する。
+             * ==========================
+             * Golden Cookie生成時の
+             * 追加乱数
+             * ==========================
              *
-             * noWrathなのでwrath判定そのものは発生しない。
+             * FtHoFはnew Game.shimmer('golden')
+             * を作るため、ここから追加の
+             * Math.random()が消費される。
              */
 
 
-            // Valentine's / Easterでは画像選択用乱数が1回入る
-            var seasonalRandom = 0;
-
+            /*
+             * 季節による追加判定
+             *
+             * v2.058ではEaster/Valentineで
+             * 追加の乱数消費がある。
+             */
             if (
-                Game.season === 'valentines' ||
-                Game.season === 'easter'
+                Game.season === 'easter' ||
+                Game.season === 'valentines'
             ) {
-                seasonalRandom = 1;
+
+                this.random(
+                    '季節判定'
+                );
+
             }
 
 
             /*
-             * Golden shimmerの座標用乱数
-             */
-            Math.random();
-            Math.random();
-
-
-            if (seasonalRandom) {
-                /*
-                 * 画像選択用
-                 */
-                Math.random();
-            }
-
-
-            /*
-             * 結果候補
+             * ==========================
+             * 成功時
+             * ==========================
              */
             var choices = [];
 
 
             if (success) {
 
-                /*
-                 * 必ず存在
-                 */
                 choices.push(
                     'Frenzy',
                     'Lucky'
@@ -162,7 +180,8 @@
 
 
                 /*
-                 * Dragonflight中はClick Frenzyなし
+                 * Dragonflight中は
+                 * Click Frenzyなし
                  */
                 if (!Game.hasBuff('Dragonflight')) {
 
@@ -174,13 +193,15 @@
 
 
                 /*
-                 * 10%
-                 *
-                 * Cookie Storm
-                 * Cookie Storm
-                 * Blab
+                 * 10% Cookie Storm
                  */
-                if (Math.random() < 0.1) {
+                var stormRoll =
+                    this.random(
+                        'Cookie Storm判定'
+                    );
+
+
+                if (stormRoll < 0.1) {
 
                     choices.push(
                         'Cookie Storm',
@@ -196,7 +217,13 @@
                  */
                 if (Game.BuildingsOwned >= 10) {
 
-                    if (Math.random() < 0.25) {
+                    var buildingRoll =
+                        this.random(
+                            'Building Special判定'
+                        );
+
+
+                    if (buildingRoll < 0.25) {
 
                         choices.push(
                             'Building Special'
@@ -209,10 +236,14 @@
 
                 /*
                  * Cookie Storm Drop
-                 *
-                 * 15%で候補を完全に置き換える
                  */
-                if (Math.random() < 0.15) {
+                var stormDropRoll =
+                    this.random(
+                        'Cookie Storm Drop判定'
+                    );
+
+
+                if (stormDropRoll < 0.15) {
 
                     choices = [
                         'Cookie Storm Drop'
@@ -222,12 +253,18 @@
 
 
                 /*
-                 * Sugar Lump
+                 * Free Sugar Lump
                  */
-                if (Math.random() < 0.0001) {
+                var lumpRoll =
+                    this.random(
+                        'Free Sugar Lump判定'
+                    );
+
+
+                if (lumpRoll < 0.0001) {
 
                     choices.push(
-                        'Sugar Lump'
+                        'Free Sugar Lump'
                     );
 
                 }
@@ -236,8 +273,11 @@
             } else {
 
                 /*
-                 * バックファイア
+                 * ==========================
+                 * バックファイア時
+                 * ==========================
                  */
+
                 choices.push(
                     'Clot',
                     'Ruin Cookies'
@@ -247,7 +287,13 @@
                 /*
                  * Cursed Finger / Elder Frenzy
                  */
-                if (Math.random() < 0.1) {
+                var curseRoll =
+                    this.random(
+                        'Cursed Finger判定'
+                    );
+
+
+                if (curseRoll < 0.1) {
 
                     choices.push(
                         'Cursed Finger',
@@ -258,12 +304,18 @@
 
 
                 /*
-                 * Sugar Lump
+                 * Free Sugar Lump
                  */
-                if (Math.random() < 0.003) {
+                var lumpRollFail =
+                    this.random(
+                        'Free Sugar Lump判定'
+                    );
+
+
+                if (lumpRollFail < 0.003) {
 
                     choices.push(
-                        'Sugar Lump'
+                        'Free Sugar Lump'
                     );
 
                 }
@@ -271,10 +323,14 @@
 
                 /*
                  * Blab
-                 *
-                 * 10%で候補を完全に置き換える
                  */
-                if (Math.random() < 0.1) {
+                var blabRoll =
+                    this.random(
+                        'Blab判定'
+                    );
+
+
+                if (blabRoll < 0.1) {
 
                     choices = [
                         'Blab'
@@ -286,11 +342,19 @@
 
 
             /*
-             * 最終的なchoose()
+             * ==========================
+             * 最終候補選択
+             * ==========================
              */
+            var chooseRoll =
+                this.random(
+                    '最終結果選択'
+                );
+
+
             var chosenIndex =
                 Math.floor(
-                    Math.random() * choices.length
+                    chooseRoll * choices.length
                 );
 
 
@@ -299,8 +363,7 @@
 
 
             /*
-             * 本体は最後にMath.seedrandom()で
-             * 通常の乱数状態へ戻す。
+             * 元のMath.randomへ戻す
              */
             Math.seedrandom();
 
@@ -313,11 +376,15 @@
 
                 failChance: failChance,
 
-                successRoll: successRoll,
+                failRoll: failRoll,
 
                 success: success,
 
-                result: result
+                result: result,
+
+                choices: choices,
+
+                randomLog: this.randomLog.slice()
 
             };
         },
@@ -350,6 +417,9 @@
             }
 
 
+            /*
+             * スクロール位置保存
+             */
             var scrollTop =
                 menu.scrollTop;
 
@@ -368,7 +438,7 @@
 
 
             /*
-             * データ取得
+             * 現在の情報
              */
             var spellsCast =
                 this.getSpellsCastTotal();
@@ -377,30 +447,76 @@
                 this.getSeed();
 
 
+            /*
+             * 予測
+             */
             var forecast =
                 this.forecastNext();
 
 
             /*
-             * 予測結果
+             * 結果
              */
             var forecastText =
                 forecast.result || '--';
 
 
-            var resultClass =
-                '';
+            /*
+             * 乱数表示HTML
+             */
+            var randomHTML = '';
 
 
-            if (forecast.success) {
-                resultClass = 'green';
+            if (
+                forecast.randomLog &&
+                forecast.randomLog.length
+            ) {
+
+                for (
+                    var i = 0;
+                    i < forecast.randomLog.length;
+                    i++
+                ) {
+
+                    var r =
+                        forecast.randomLog[i];
+
+                    randomHTML +=
+                        '<div style="margin:3px 0;">' +
+
+                            '<span style="display:inline-block;' +
+                                'width:25px;">' +
+
+                                (i + 1) +
+
+                            '.</span>' +
+
+                            '<span style="display:inline-block;' +
+                                'width:190px;">' +
+
+                                r.label +
+
+                            '</span>' +
+
+                            '<span>' +
+
+                                r.value.toFixed(10) +
+
+                            '</span>' +
+
+                        '</div>';
+                }
+
             } else {
-                resultClass = 'red';
+
+                randomHTML =
+                    '乱数データなし';
+
             }
 
 
             /*
-             * Planner本体
+             * Planner
              */
             var section =
                 document.createElement('div');
@@ -433,14 +549,14 @@
                     ';">' +
 
 
+                    /*
+                     * 基本情報
+                     */
                     '<div class="listing">' +
 
                         '<b>Force the Hand of Fate</b>' +
 
-                    '</div>' +
-
-
-                    '<div class="listing">' +
+                        '<br><br>' +
 
                         '<b>総スペル回数：</b>' +
                         spellsCast +
@@ -453,16 +569,16 @@
                     '</div>' +
 
 
+                    /*
+                     * 予測結果
+                     */
                     '<div class="listing">' +
 
                         '<b>次回FtHoF</b>' +
 
                         '<br><br>' +
 
-                        '<span class="' +
-                            resultClass +
-                            '" ' +
-                            'style="font-size:18px;">' +
+                        '<span style="font-size:18px;">' +
 
                             forecastText +
 
@@ -470,18 +586,42 @@
 
                         '<br><br>' +
 
-                        '<small>' +
+                        '<b>成功率：</b>' +
 
-                            '成功率：' +
+                        (
+                            ((1 - forecast.failChance) * 100)
+                            .toFixed(2)
+                        ) +
 
-                            (
-                                ((1 - forecast.failChance) * 100)
-                                .toFixed(2)
-                            ) +
+                        '%' +
 
-                            '%' +
+                    '</div>' +
+
+
+                    /*
+                     * 乱数
+                     */
+                    '<div class="listing">' +
+
+                        '<b>乱数</b>' +
+
+                        '<br>' +
+
+                        '<small style="opacity:0.7;">' +
+
+                            'この予測で使用した乱数値' +
 
                         '</small>' +
+
+                        '<div style="' +
+                            'margin-top:8px;' +
+                            'font-family:monospace;' +
+                            'font-size:12px;' +
+                        '">' +
+
+                            randomHTML +
+
+                        '</div>' +
 
                     '</div>' +
 
@@ -490,13 +630,13 @@
 
 
             /*
-             * Options末尾に追加
+             * Options末尾へ追加
              */
             menu.appendChild(section);
 
 
             /*
-             * 開閉
+             * 開閉処理
              */
             var title =
                 document.getElementById(
@@ -548,7 +688,8 @@
             /*
              * スクロール位置復元
              */
-            menu.scrollTop = scrollTop;
+            menu.scrollTop =
+                scrollTop;
 
 
             console.log(
@@ -560,21 +701,30 @@
 
 
     /*
-     * Game.UpdateMenuを拡張
+     * 元のGame.UpdateMenuを保存
      */
     var originalUpdateMenu =
         Game.UpdateMenu;
 
 
+    /*
+     * Game.UpdateMenuを拡張
+     */
     Game.UpdateMenu =
         function () {
 
+            /*
+             * 本来の処理
+             */
             originalUpdateMenu.apply(
                 Game,
                 arguments
             );
 
 
+            /*
+             * OptionsならPlanner更新
+             */
             if (
                 Game.onMenu === 'prefs'
             ) {
@@ -591,7 +741,7 @@
      */
     Game.Notify(
         'FtHoF Planner',
-        'FtHoF予測エンジンを読み込みました。',
+        '乱数表示を追加しました。',
         [16, 5],
         3
     );
