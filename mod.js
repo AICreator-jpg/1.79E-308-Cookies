@@ -5,45 +5,120 @@
 
     var FtHoFPlanner = {
 
-        // Plannerが開いているかどうか
+        // Plannerが開いているか
         isOpen: false,
 
-        updateOptionsMenu: function () {
-            var menu = document.getElementById('menu');
-            if (!menu) return;
 
-            /*
-             * 現在の状態を保存
-             *
-             * Cookie Clickerがメニューを再生成する前に、
-             * Plannerの開閉状態とスクロール位置を覚えておく。
-             */
-            var oldBody = document.getElementById('FtHoFPlannerBody');
+        /*
+         * Wizard Towerから現在の情報を取得
+         */
+        getGrimoire: function () {
+            var wizardTower = Game.Objects['Wizard tower'];
 
-            if (oldBody) {
-                this.isOpen = (oldBody.style.display !== 'none');
+            if (!wizardTower) {
+                return null;
             }
 
+            if (!wizardTower.minigame) {
+                return null;
+            }
+
+            return wizardTower.minigame;
+        },
+
+
+        /*
+         * 現在のスペル総数を取得
+         */
+        getSpellsCastTotal: function () {
+            var grimoire = this.getGrimoire();
+
+            if (!grimoire) {
+                return '--';
+            }
+
+            return grimoire.spellsCastTotal || 0;
+        },
+
+
+        /*
+         * 現在のSeedを取得
+         */
+        getSeed: function () {
+            if (typeof Game.seed === 'undefined') {
+                return '--';
+            }
+
+            return Game.seed;
+        },
+
+
+        /*
+         * Optionsを更新
+         */
+        updateOptionsMenu: function () {
+
+            var menu = document.getElementById('menu');
+
+            if (!menu) {
+                return;
+            }
+
+
+            /*
+             * 現在の開閉状態を保存
+             */
+            var oldBody =
+                document.getElementById('FtHoFPlannerBody');
+
+            if (oldBody) {
+                this.isOpen =
+                    oldBody.style.display !== 'none';
+            }
+
+
+            /*
+             * スクロール位置を保存
+             */
             var scrollTop = menu.scrollTop;
+
 
             /*
              * 古いPlannerを削除
              */
-            var old = document.getElementById('FtHoFPlannerOptions');
+            var old =
+                document.getElementById('FtHoFPlannerOptions');
 
             if (old) {
                 old.remove();
             }
 
+
             /*
-             * FtHoF Planner
+             * Planner本体を作成
              */
-            var section = document.createElement('div');
+            var section =
+                document.createElement('div');
 
             section.id = 'FtHoFPlannerOptions';
             section.className = 'listing';
 
+
+            /*
+             * 現在のゲーム情報
+             */
+            var spellsCast =
+                this.getSpellsCastTotal();
+
+            var seed =
+                this.getSeed();
+
+
+            /*
+             * HTML
+             */
             section.innerHTML =
+
                 '<div class="title" ' +
                     'id="FtHoFPlannerTitle" ' +
                     'style="cursor:pointer;">' +
@@ -56,38 +131,92 @@
 
                 '</div>' +
 
+
                 '<div id="FtHoFPlannerBody" ' +
                     'style="display:' +
                         (this.isOpen ? '' : 'none') +
                     ';">' +
 
+
+                    /*
+                     * タイトル
+                     */
                     '<div class="listing">' +
-                        '<b>FtHoF Planner</b><br>' +
-                        'Force the Hand of Fate Planner' +
+
+                        '<b>Force the Hand of Fate Planner</b>' +
+
                     '</div>' +
 
+
+                    /*
+                     * 総スペル回数
+                     */
                     '<div class="listing">' +
-                        'ここにFtHoFの予測結果を表示します。' +
+
+                        '<b>総スペル回数</b><br>' +
+
+                        '<span id="FtHoFPlannerSpellCount">' +
+                            spellsCast +
+                        '</span>' +
+
                     '</div>' +
+
+
+                    /*
+                     * Seed
+                     */
+                    '<div class="listing">' +
+
+                        '<b>現在のSeed</b><br>' +
+
+                        '<span id="FtHoFPlannerSeed">' +
+                            seed +
+                        '</span>' +
+
+                    '</div>' +
+
+
+                    /*
+                     * 次のステップ用
+                     */
+                    '<div class="listing">' +
+
+                        '<b>予測結果</b><br>' +
+
+                        '<span style="opacity:0.7;">' +
+                            'ここにFtHoFの予測結果を表示します。' +
+                        '</span>' +
+
+                    '</div>' +
+
 
                 '</div>';
+
 
             /*
              * Optionsの最後に追加
              */
             menu.appendChild(section);
 
+
             /*
              * 開閉処理
              */
             var title =
-                document.getElementById('FtHoFPlannerTitle');
+                document.getElementById(
+                    'FtHoFPlannerTitle'
+                );
 
             var body =
-                document.getElementById('FtHoFPlannerBody');
+                document.getElementById(
+                    'FtHoFPlannerBody'
+                );
 
             var toggle =
-                document.getElementById('FtHoFPlannerToggle');
+                document.getElementById(
+                    'FtHoFPlannerToggle'
+                );
+
 
             if (title && body && toggle) {
 
@@ -106,18 +235,22 @@
                         toggle.textContent = '+';
 
                         FtHoFPlanner.isOpen = false;
+
                     }
                 };
             }
 
+
             /*
-             * メニューのスクロール位置を復元
+             * スクロール位置を復元
              */
             menu.scrollTop = scrollTop;
 
+
             console.log(
-                '[FtHoF Planner] Options updated. open=' +
-                this.isOpen
+                '[FtHoF Planner] ' +
+                'spells=' + spellsCast +
+                ' seed=' + seed
             );
         }
     };
@@ -141,11 +274,13 @@
 
 
         /*
-         * Options画面の場合だけ
-         * FtHoF Plannerを追加
+         * Options画面のときだけ
+         * Plannerを追加
          */
         if (Game.onMenu === 'prefs') {
+
             FtHoFPlanner.updateOptionsMenu();
+
         }
     };
 
@@ -159,6 +294,7 @@
         [16, 5],
         3
     );
+
 
     console.log('[FtHoF Planner] loaded');
 
