@@ -144,10 +144,11 @@
 
 
             /*
-             * FtHoFの結果判定では、
-             * Golden Cookieの座標・画像などの
-             * 生成用乱数を予測用に消費しない。
+             * Golden/Wrath Cookie生成時に消費される乱数。
+             * 本家Plannerと同じ乱数位置へ進めるために必要。
              */
+            loggedRandom('Golden/Wrath Cookie生成 1');
+            loggedRandom('Golden/Wrath Cookie生成 2');
 
 
             /*
@@ -349,6 +350,9 @@
                 choices[chosenIndex];
 
 
+
+
+
             /*
              * 元のMath.randomへ戻す
              */
@@ -498,6 +502,7 @@
                 i < forecasts.length;
                 i++
             ) {
+
                 var item = forecasts[i];
                 var f = item.forecast;
 
@@ -767,7 +772,7 @@
      * 読み込み確認
      */
     Game.Notify(
-        'FtHoF Planner',
+        'FtHoF Planner v0.1.0',
         '乱数表示を追加しました。',
         [16, 5],
         3
