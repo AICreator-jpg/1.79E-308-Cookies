@@ -65,6 +65,31 @@
 
 
         /*
+         * 本家 FtHoF Planner v6b 日本語版に合わせた表示名
+         * 内部処理では英語名を維持し、表示時だけ日本語化する。
+         */
+        translateEffect: function (effect) {
+
+            var dict = {
+                'Frenzy': 'フィーバー',
+                'Lucky': 'ラッキー！',
+                'Click Frenzy': 'クリックフィーバー',
+                'Cookie Storm': 'クッキー乱舞',
+                'Building Special': '施設特殊効果',
+                'Cookie Storm Drop': 'クッキーストームドロップ',
+                'Free Sugar Lump': '無料の砂糖玉',
+                'Clot': '障害発生',
+                'Ruin Cookies': '台無し！',
+                'Cursed Finger': '呪われた指',
+                'Elder Frenzy': 'エルダーフィーバー',
+                'Blab': 'ブラブ'
+            };
+
+            return dict[effect] || effect;
+        },
+
+
+        /*
          * 乱数を取得すると同時に記録する
          */
         random: function (label) {
@@ -136,7 +161,7 @@
              * ==========================
              */
             var failRoll =
-                loggedRandom('Backfire判定');
+                loggedRandom('逆効果判定');
 
 
             var success =
@@ -147,8 +172,8 @@
              * Golden/Wrath Cookie生成時に消費される乱数。
              * 本家Plannerと同じ乱数位置へ進めるために必要。
              */
-            loggedRandom('Golden/Wrath Cookie生成 1');
-            loggedRandom('Golden/Wrath Cookie生成 2');
+            loggedRandom('GC/WC生成 1');
+            loggedRandom('GC/WC生成 2');
 
 
             /*
@@ -185,7 +210,7 @@
                  */
                 var stormRoll =
                     loggedRandom(
-                        'Cookie Storm判定'
+                        'クッキー乱舞判定'
                     );
 
 
@@ -207,7 +232,7 @@
 
                     var buildingRoll =
                         loggedRandom(
-                            'Building Special判定'
+                            '施設特殊効果判定'
                         );
 
 
@@ -227,7 +252,7 @@
                  */
                 var stormDropRoll =
                     loggedRandom(
-                        'Cookie Storm Drop判定'
+                        'クッキーストームドロップ判定'
                     );
 
 
@@ -245,7 +270,7 @@
                  */
                 var lumpRoll =
                     loggedRandom(
-                        'Free Sugar Lump判定'
+                        '無料の砂糖玉判定'
                     );
 
 
@@ -277,7 +302,7 @@
                  */
                 var curseRoll =
                     loggedRandom(
-                        'Cursed Finger判定'
+                        '呪われた指判定'
                     );
 
 
@@ -296,7 +321,7 @@
                  */
                 var lumpRollFail =
                     loggedRandom(
-                        'Free Sugar Lump判定'
+                        '無料の砂糖玉判定'
                     );
 
 
@@ -473,8 +498,6 @@
 
                 old.remove();
             }
-
-
             /*
              * 現在の情報
              */
@@ -514,6 +537,9 @@
                 var backfireText =
                     f.success ? '成功' : '失敗';
 
+                var displayEffect =
+                    this.translateEffect(f.result);
+
                 var detailHTML = '';
 
                 if (f.randomLog && f.randomLog.length) {
@@ -551,7 +577,7 @@
                             mainRandom.toFixed(10) +
                         '</td>' +
                         '<td style="padding:5px 7px;">' +
-                            '<b>' + f.result + '</b>' +
+                            '<b>' + displayEffect + '</b>' +
                         '</td>' +
                     '</tr>' +
                     '<tr id="FtHoFRandomRow' + i + '" style="display:' + (this.expandedRows[i] ? '' : 'none') + ';">' +
@@ -601,12 +627,12 @@
                     ';">' +
 
                     '<div class="listing">' +
-                        '<b>Force the Hand of Fate</b>' +
+                        '<b>抗えぬ運命の手</b>' +
                         '<br><br>' +
                         '<b>総スペル回数：</b>' +
                         spellsCast +
                         '<br>' +
-                        '<b>Seed：</b>' +
+                        '<b>シード：</b>' +
                         seed +
                     '</div>' +
 
@@ -617,7 +643,7 @@
                             '<thead>' +
                                 '<tr>' +
                                     '<th style="text-align:left;padding:5px 7px;">手数 / 呪文総回数</th>' +
-                                    '<th style="text-align:left;padding:5px 7px;">バックファイア</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">逆効果</th>' +
                                     '<th style="text-align:left;padding:5px 7px;">乱数</th>' +
                                     '<th style="text-align:left;padding:5px 7px;">効果</th>' +
                                 '</tr>' +
@@ -772,7 +798,7 @@
      * 読み込み確認
      */
     Game.Notify(
-        'FtHoF Planner v0.1.0',
+        'FtHoF Planner v0.1.1',
         '乱数表示を追加しました。',
         [16, 5],
         3
