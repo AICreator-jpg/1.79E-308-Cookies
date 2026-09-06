@@ -108,7 +108,7 @@
         /*
          * FtHoF予測
          */
-        forecastAt: function (spellCount) {
+        forecastAt: function (spellCount, forcedSuccess) {
 
             var M = this.getGrimoire();
 
@@ -165,7 +165,9 @@
 
 
             var success =
-                failRoll < (1 - failChance);
+                (typeof forcedSuccess === 'boolean') ?
+                    forcedSuccess :
+                    failRoll < (1 - failChance);
 
 
             /*
@@ -339,7 +341,7 @@
                  */
                 var blabRoll =
                     loggedRandom(
-                        'Blab判定'
+                        'ブラブ判定'
                     );
 
 
@@ -375,6 +377,21 @@
                 choices[chosenIndex];
 
 
+            /*
+             * 通常予測では、反対側の結果も同じspellCountで計算する。
+             * forcedSuccessを指定した再帰呼び出しでは再計算しない。
+             */
+            var oppositeResult = null;
+
+            if (typeof forcedSuccess !== 'boolean') {
+                oppositeResult =
+                    this.forecastAt(
+                        spellCount,
+                        !success
+                    ).result;
+            }
+
+
 
 
 
@@ -397,6 +414,8 @@
                 success: success,
 
                 result: result,
+
+                oppositeResult: oppositeResult,
 
                 choices: choices,
 
@@ -498,6 +517,8 @@
 
                 old.remove();
             }
+
+
             /*
              * 現在の情報
              */
@@ -540,29 +561,17 @@
                 var displayEffect =
                     this.translateEffect(f.result);
 
-                var detailHTML = '';
-
-                if (f.randomLog && f.randomLog.length) {
-                    for (
-                        var j = 0;
-                        j < f.randomLog.length;
-                        j++
-                    ) {
-                        var r = f.randomLog[j];
-                        detailHTML +=
-                            '<div style="margin:3px 0;">' +
-                                '<span style="display:inline-block;width:25px;">' +
-                                    (j + 1) +
-                                '.</span>' +
-                                '<span style="display:inline-block;width:190px;">' +
-                                    r.label +
-                                '</span>' +
-                                '<span>' +
-                                    r.value.toFixed(10) +
-                                '</span>' +
-                            '</div>';
-                    }
-                }
+                var detailHTML =
+                    '<div style="margin:3px 0;">' +
+                        '<b>' +
+                        (f.success ?
+                            'バックファイア時の結果：' :
+                            '成功時の結果：') +
+                        '</b> ' +
+                        this.translateEffect(
+                            f.oppositeResult
+                        ) +
+                    '</div>';
 
                 rowsHTML +=
                     '<tr style="cursor:pointer;" data-fthof-row="' + i + '">' +
@@ -644,7 +653,7 @@
                                 '<tr>' +
                                     '<th style="text-align:left;padding:5px 7px;">手数 / 呪文総回数</th>' +
                                     '<th style="text-align:left;padding:5px 7px;">逆効果</th>' +
-                                    '<th style="text-align:left;padding:5px 7px;">乱数</th>' +
+                                    '<th style="text-align:left;padding:5px 7px;">逆効果乱数</th>' +
                                     '<th style="text-align:left;padding:5px 7px;">効果</th>' +
                                 '</tr>' +
                             '</thead>' +
@@ -653,7 +662,7 @@
                             '</tbody>' +
                         '</table>' +
                         '<br>' +
-                        '<small style="opacity:0.7;">行をタップすると、その手で使用した乱数の詳細を表示します。</small>' +
+                        '<small style="opacity:0.7;">行をタップすると、反対側の結果を表示します。</small>' +
                     '</div>' +
                 '</div>';
 
@@ -798,8 +807,8 @@
      * 読み込み確認
      */
     Game.Notify(
-        'FtHoF Planner v0.1.1',
-        '乱数表示を追加しました。',
+        'FtHoF Planner v0.1.2',
+        '詳細表示を反対側の結果に変更しました。',
         [16, 5],
         3
     );
