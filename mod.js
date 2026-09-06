@@ -7,6 +7,18 @@
 
         isOpen: false,
 
+        // プランナー設定パネルの開閉状態
+        settingsOpen: true,
+
+        // バックファイア率設定
+        settings: {
+            supremeIntellect: false,
+            realityBending: false,
+            diminishIneptitude: false,
+            diminishIneptitudeBackfire: false,
+            dragonflight: false
+        },
+
         // 各行の詳細表示状態をUpdateMenu再構築後も保持
         expandedRows: {},
 
@@ -50,17 +62,79 @@
 
         /*
          * バックファイア率
+         *
+         * v2.058 の FtHoF に合わせ、設定した倍率は「基本15%」へ
+         * 適用し、その後に画面上のGC/WCによる +15%/個を加算する。
+         *
+         * Supreme Intellect + Reality Bending の組み合わせは
+         * 本家FtHoF Planner v6系の設定と同じく 1.11倍として扱う。
          */
         getFailChance: function () {
-            var M = this.getGrimoire();
 
-            if (!M) return 0.15;
+            var base = 0.15;
 
-            var spell = M.spells['hand of fate'];
+            if (this.settings.supremeIntellect && this.settings.realityBending) {
+                base *= 1.11;
+            } else if (this.settings.supremeIntellect) {
+                base *= 1.10;
+            } else if (this.settings.realityBending) {
+                base *= 1.01;
+            }
 
-            if (!spell) return 0.15;
+            if (this.settings.diminishIneptitude) {
+                base *= 0.1;
+            }
 
-            return M.getFailChance(spell);
+            if (this.settings.diminishIneptitudeBackfire) {
+                base *= 5;
+            }
+
+            var goldenCount = 0;
+
+            if (Game.shimmerTypes && Game.shimmerTypes['golden']) {
+                goldenCount = Game.shimmerTypes['golden'].n || 0;
+            }
+
+            return base + 0.15 * goldenCount;
+        },
+
+
+        /*
+         * 設定に表示する「基本バックファイア率」
+         * 画面上GC/WCの加算分を含まない。
+         */
+        getBaseFailChance: function () {
+
+            var base = 0.15;
+
+            if (this.settings.supremeIntellect && this.settings.realityBending) {
+                base *= 1.11;
+            } else if (this.settings.supremeIntellect) {
+                base *= 1.10;
+            } else if (this.settings.realityBending) {
+                base *= 1.01;
+            }
+
+            if (this.settings.diminishIneptitude) {
+                base *= 0.1;
+            }
+
+            if (this.settings.diminishIneptitudeBackfire) {
+                base *= 5;
+            }
+
+            return base;
+        },
+
+
+        /*
+         * 画面上のGC/WC数
+         */
+        getGoldenCount: function () {
+            if (Game.shimmerTypes && Game.shimmerTypes['golden']) {
+                return Game.shimmerTypes['golden'].n || 0;
+            }
+            return 0;
         },
 
 
@@ -138,10 +212,12 @@
 
             function loggedRandom(label) {
                 var value = Math.random();
+
                 randomLog.push({
                     label: label,
                     value: value
                 });
+
                 return value;
             }
 
@@ -198,7 +274,7 @@
                  * Dragonflight中は
                  * Click Frenzyなし
                  */
-                if (!Game.hasBuff('Dragonflight')) {
+                if (!this.settings.dragonflight) {
 
                     choices.push(
                         'Click Frenzy'
@@ -383,16 +459,16 @@
              */
             var oppositeResult = null;
 
+
             if (typeof forcedSuccess !== 'boolean') {
+
                 oppositeResult =
                     this.forecastAt(
                         spellCount,
                         !success
                     ).result;
+
             }
-
-
-
 
 
             /*
@@ -402,7 +478,6 @@
 
 
             return {
-
                 spellCount: spellCount,
 
                 seed: Game.seed,
@@ -420,11 +495,9 @@
                 choices: choices,
 
                 randomLog: randomLog.slice()
-
             };
+
         },
-
-
         /*
          * 次のFtHoFを予測
          */
@@ -484,6 +557,26 @@
 
             }
 
+
+            /*
+             * 設定状態を保存
+             */
+            var oldSettings = document.getElementById('FtHoFPlannerSettingsBody');
+            if (oldSettings) {
+                var si = document.getElementById('FtHoFSettingSI');
+                var rb = document.getElementById('FtHoFSettingRB');
+                var di = document.getElementById('FtHoFSettingDI');
+                var diBackfire = document.getElementById('FtHoFSettingDIBackfire');
+                var df = document.getElementById('FtHoFSettingDragonflight');
+
+                if (si) this.settings.supremeIntellect = si.checked;
+                if (rb) this.settings.realityBending = rb.checked;
+                if (di) this.settings.diminishIneptitude = di.checked;
+                if (diBackfire) this.settings.diminishIneptitudeBackfire = diBackfire.checked;
+                if (df) this.settings.dragonflight = df.checked;
+
+                this.settingsOpen = oldSettings.style.display !== 'none';
+            }
 
             /*
              * スクロール位置保存
@@ -603,6 +696,7 @@
                     '<tr><td colspan="4">予測データなし</td></tr>';
             }
 
+
             /*
              * Planner
              */
@@ -628,6 +722,54 @@
                         (this.isOpen ? '−' : '+') +
                     '</span>' +
 
+                '</div>' +
+
+                '<div class="listing" style="margin-top:4px;">' +
+                    '<div id="FtHoFPlannerSettingsTitle" style="cursor:pointer;font-weight:bold;">' +
+                        'プランナー設定 ' +
+                        '<span id="FtHoFPlannerSettingsToggle">' +
+                            (this.settingsOpen ? '−' : '+') +
+                        '</span>' +
+                    '</div>' +
+                    '<div id="FtHoFPlannerSettingsBody" style="display:' +
+                        (this.settingsOpen ? '' : 'none') +
+                    ';margin-top:8px;">' +
+                        '<label style="display:block;margin:4px 0;">' +
+                            '<input type="checkbox" id="FtHoFSettingSI" ' +
+                            (this.settings.supremeIntellect ? 'checked' : '') +
+                            '> 最高峰の知性（バックファイア率1.1倍）' +
+                        '</label>' +
+                        '<label style="display:block;margin:4px 0;">' +
+                            '<input type="checkbox" id="FtHoFSettingRB" ' +
+                            (this.settings.realityBending ? 'checked' : '') +
+                            '> 現実の湾曲（バックファイア率1.01倍）' +
+                        '</label>' +
+                        '<label style="display:block;margin:4px 0;">' +
+                            '<input type="checkbox" id="FtHoFSettingDI" ' +
+                            (this.settings.diminishIneptitude ? 'checked' : '') +
+                            '> 愚劣の減少（バックファイア率0.1倍）' +
+                        '</label>' +
+                        '<label style="display:block;margin:4px 0;">' +
+                            '<input type="checkbox" id="FtHoFSettingDIBackfire" ' +
+                            (this.settings.diminishIneptitudeBackfire ? 'checked' : '') +
+                            '> 愚劣の増大（バックファイア率5倍）' +
+                        '</label>' +
+                        '<label style="display:block;margin:4px 0;">' +
+                            '<input type="checkbox" id="FtHoFSettingDragonflight" ' +
+                            (this.settings.dragonflight ? 'checked' : '') +
+                            '> ドラゴンフライト（クリックフィーバーがラッキー等になる）' +
+                        '</label>' +
+                        '<div style="margin-top:8px;font-size:12px;opacity:0.85;">' +
+                            '基本バックファイア率：<b>' +
+                            (this.getBaseFailChance() * 100).toFixed(2) +
+                            '%</b><br>' +
+                            '画面上のGC/WC：<b>' +
+                            this.getGoldenCount() +
+                            '</b>個 → 現在のバックファイア率：<b>' +
+                            (this.getFailChance() * 100).toFixed(2) +
+                            '%</b>' +
+                        '</div>' +
+                    '</div>' +
                 '</div>' +
 
                 '<div id="FtHoFPlannerBody" ' +
@@ -723,6 +865,54 @@
 
 
             /*
+             * プランナー設定の開閉
+             */
+            var settingsTitle = document.getElementById('FtHoFPlannerSettingsTitle');
+            var settingsBody = document.getElementById('FtHoFPlannerSettingsBody');
+            var settingsToggle = document.getElementById('FtHoFPlannerSettingsToggle');
+
+            if (settingsTitle && settingsBody && settingsToggle) {
+                settingsTitle.onclick = function () {
+                    if (settingsBody.style.display === 'none') {
+                        settingsBody.style.display = '';
+                        settingsToggle.textContent = '−';
+                        FtHoFPlanner.settingsOpen = true;
+                    } else {
+                        settingsBody.style.display = 'none';
+                        settingsToggle.textContent = '+';
+                        FtHoFPlanner.settingsOpen = false;
+                    }
+                };
+            }
+
+            /*
+             * バックファイア設定変更時は予測を即時更新
+             */
+            var settingIds = [
+                'FtHoFSettingSI',
+                'FtHoFSettingRB',
+                'FtHoFSettingDI',
+                'FtHoFSettingDIBackfire',
+                'FtHoFSettingDragonflight'
+            ];
+
+            for (var settingIndex = 0; settingIndex < settingIds.length; settingIndex++) {
+                (function (id) {
+                    var checkbox = document.getElementById(id);
+                    if (!checkbox) return;
+                    checkbox.onchange = function () {
+                        FtHoFPlanner.settings.supremeIntellect = document.getElementById('FtHoFSettingSI').checked;
+                        FtHoFPlanner.settings.realityBending = document.getElementById('FtHoFSettingRB').checked;
+                        FtHoFPlanner.settings.diminishIneptitude = document.getElementById('FtHoFSettingDI').checked;
+                        FtHoFPlanner.settings.diminishIneptitudeBackfire = document.getElementById('FtHoFSettingDIBackfire').checked;
+                        FtHoFPlanner.settings.dragonflight = document.getElementById('FtHoFSettingDragonflight').checked;
+                        FtHoFPlanner.updateOptionsMenu();
+                    };
+                })(settingIds[settingIndex]);
+            }
+
+
+            /*
              * 各行のクリックで乱数詳細を開閉
              */
             for (var rowIndex = 0; rowIndex < forecasts.length; rowIndex++) {
@@ -807,8 +997,8 @@
      * 読み込み確認
      */
     Game.Notify(
-        'FtHoF Planner v0.1.2',
-        '詳細表示を反対側の結果に変更しました。',
+        'FtHoF Planner v0.1.3',
+        '各種バックファイア率設定を追加しました。',
         [16, 5],
         3
     );
